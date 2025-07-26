@@ -1,3 +1,5 @@
-#  Update your requirements.
-#  numpy==1.18.1
+# Webhook dependencies
+requests>=2.31.0
+Pillow>=10.0.0
+numpy>=1.21.0
 

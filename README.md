@@ -1,89 +1,170 @@
-# ComfyUI CustomNode Template
+# ComfyUI Webhook Notification Node
 
-This is the [ComfyUI](https://github.com/comfyanonymous/ComfyUI) custom node template repository that anyone can use to create their own custom nodes.
+A custom ComfyUI node that allows you to send webhook notifications with images and JSON data to external servers.
 
-## Directory Structure
-```
-Project-Name/
-├── .github/                # GA workflow for publishing the ComfyUI registry 
-├── workflows/              # Example workflows for your custom node
-├── modules/                # Your own modules for the custom node
-├── .gitignore              # gitignore file 
-├── __init__.py             # Map your custom node display names here 
-├── nodes.py                # Your custom node classes  
-├── README.md               # README file
-├── pyproject.toml          # Metadata file for the ComfyUI registry
-└── requirements.txt        # Project dependencies 
-```
+## Features
 
-## Custom Node Files
+- Send POST requests to webhook URLs
+- Include one or more images in the request
+- Send custom JSON data payload
+- Custom HTTP headers support
+- Configurable timeout settings
+- Progress bar for request status
+- Error handling and response feedback
 
-### [nodes.py](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/tree/master/nodes.py)
-This file is where your actual custom node classes are defined. The class has specific methods that are called by the ComfyUI engine.
-There're some basic custom nodes for the example with some comments, you can modify them as you need.
-For detailed information on how to create custom nodes, please refer to the ComfyUI official documentation: 
-- https://docs.comfy.org/essentials/custom_node_walkthrough.
-
-### [__init__.py](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/tree/master/__init__.py)
-You can map your custom node display names here. It will be used when users search for your custom node in the ComfyUI.
-
-### [pyproject.toml](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/tree/master/pyproject.toml)
-This file is used to publish your custom node to the ComfyUI registry. If you want to publish your custom node to the ComfyUI registry, you need to modify this file.
-
-If you wonder what ComfyUI registry is, please read:
-
-- https://docs.comfy.org/registry/overview#why-use-the-registry
-
-### [requirements.txt](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/tree/master/requirements.txt)
-This file contains the dependencies needed for your custom node. `torch` is already installed in the ComfyUI, so you only need to add "extra" dependencies here.
-
-### [workflows/example-1.json](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/tree/master/workflows)
-This is optional, but it is recommended to put your ComfyUI workflow json file inside your project so users can easily understand how to use your custom node.
-
-## Github Actions
-
-### [publish-comfyui-registry.yml](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/tree/master/.github/workflows/publish-comfyui-registry.yml)
-When you push into the `master` branch, this workflow will be triggered and publish your custom node to the ComfyUI registry, using your [pyproject.toml](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/tree/master/pyproject.toml).
-You have to register your "REGISTRY_ACCESS_TOKEN" in the Github Action Secrets which you can get from:
-- https://docs.comfy.org/registry/publishing#create-an-api-key-for-publishing
-
-After generating the repository from this template, uncomment the push to enable the workflow with auto trigger:
-
-https://github.com/jhj0517/ComfyUI-CustomNodes-Template/blob/6ae10a1d161933c5e3cff432e1c8bbc9396be954/.github/workflows/publish-comfyui-registry.yml#L4-L10
-
-## Github Issue & PR templates
-
-There are some basic templates for the Github issues & PR. You can edit them or add more to fit your project's needs.
-
-- Issue Templates:
-  1. [bug_report.md](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/blob/master/.github/ISSUE_TEMPLATE/bug_report.md) : Basic bug report template
-  2. [feature_request.md](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/blob/master/.github/ISSUE_TEMPLATE/feature_request.md) : Feature request template
-
-- PR Template: [pull_request_template.md](https://github.com/jhj0517/ComfyUI-CustomNodes-Template/blob/master/.github/pull_request_template.md)
-
-
-## How to Strat Using Template
-
-Click "Use this template" -> "Create a new repository", then you can create your own custom node from there.
-
-![image](https://github.com/user-attachments/assets/fab4da53-0458-4e88-adc1-5bb5d341a511)
-
-The custom node installation guide below can usually be used for any custom node, you can use it in your README by modifying the repository name and URL.
 ## Installation
 
-1. git clone repository into `ComfyUI\custom_nodes\`
-```
-git clone https://github.com/replace-this-with-your-github-repository-url.git
+1. Clone or download this repository to your ComfyUI `custom_nodes` directory
+2. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Restart ComfyUI
+
+## Usage
+
+### Basic Usage
+
+1. Add the "Webhook Notification" node to your workflow
+2. Connect an image output to the "images" input
+3. Set your webhook URL in the "webhook_url" field
+4. Optionally add JSON data in the "json_data" field
+5. Run your workflow
+
+### Node Parameters
+
+#### Required Parameters
+- **webhook_url**: The URL where the webhook will be sent
+- **images**: Image input from other nodes
+
+#### Optional Parameters
+- **json_data**: JSON string to include in the request (default: `{}`)
+- **custom_headers**: JSON string for custom HTTP headers (default: `{}`)
+- **timeout**: Request timeout in seconds (default: 30, range: 5-300)
+- **send_as_json**: If enabled, sends only JSON data without images (default: false)
+- **enable_notification**: Toggle to enable/disable webhook sending (default: true)
+
+### Outputs
+- **status**: Success/failure status of the webhook request
+- **response**: Response text or error message from the server
+
+## Example JSON Data
+
+```json
+{
+  "workflow_name": "My Image Generation",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "parameters": {
+    "prompt": "A beautiful landscape",
+    "seed": 12345
+  }
+}
 ```
 
-2. Go to `ComfyUI\custom_nodes\ComfyUI-Your-CustomNode-Name` and run
-```
-pip install -r requirements.txt
+## Example Custom Headers
+
+```json
+{
+  "Authorization": "Bearer your-token-here",
+  "X-Custom-Header": "custom-value"
+}
 ```
 
-If you are using the portable version of ComfyUI, do this:
+## Request Formats
+
+### Multipart Form Data (Default)
+When `send_as_json` is disabled (default), the webhook sends a multipart form request with:
+- Images as files with names `image_0.png`, `image_1.png`, etc.
+- JSON data in the `json_data` field
+
+### JSON Only
+When `send_as_json` is enabled, the webhook sends a pure JSON request with:
+- Content-Type: `application/json`
+- JSON data as the request body
+
+## Error Handling
+
+The node provides detailed error messages for:
+- Invalid JSON data
+- Network connection issues
+- Server errors
+- Timeout errors
+
+## Next.js Handler Example
+
+For your Next.js application, use this handler that supports both JSON-only and multipart requests:
+
+```typescript
+import { NextRequest, NextResponse } from "next/server"
+
+interface WebhookRequestBody {
+    characterId: string
+    workflow_name?: string
+    prompt?: string
+    seed?: number
+    timestamp?: string
+    [key: string]: any
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        const contentType = request.headers.get('content-type') || ''
+        
+        if (contentType.includes('application/json')) {
+            // Handle JSON-only requests
+            const body: WebhookRequestBody = await request.json()
+            
+            if (!body.characterId) {
+                return NextResponse.json(
+                    { error: 'characterId is required' },
+                    { status: 400 }
+                )
+            }
+            
+            console.log('Received JSON webhook:', body)
+            
+            return NextResponse.json({ 
+                success: true, 
+                characterId: body.characterId 
+            }, { status: 201 })
+        } else if (contentType.includes('multipart/form-data')) {
+            // Handle multipart form data (images + JSON)
+            const formData = await request.formData()
+            const jsonDataStr = formData.get('json_data') as string
+            const images = formData.getAll('images') as File[]
+            
+            const jsonData: WebhookRequestBody = JSON.parse(jsonDataStr)
+            
+            if (!jsonData.characterId) {
+                return NextResponse.json(
+                    { error: 'characterId is required in JSON data' },
+                    { status: 400 }
+                )
+            }
+            
+            console.log('Received multipart webhook:', {
+                characterId: jsonData.characterId,
+                imageCount: images.length
+            })
+            
+            return NextResponse.json({ 
+                success: true, 
+                characterId: jsonData.characterId,
+                imagesProcessed: images.length
+            }, { status: 201 })
+        }
+    } catch (error) {
+        console.error('Webhook processing error:', error)
+        return NextResponse.json(
+            { success: false, error: 'Failed to process webhook' },
+            { status: 500 }
+        )
+    }
+}
 ```
-python_embeded\python.exe -m pip install -r ComfyUI\custom_nodes\ComfyUI-Your-CustomNode-Name\requirements.txt
-```
+
+## License
+
+This project is open source and available under the MIT License.
 
 

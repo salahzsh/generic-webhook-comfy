@@ -1,13 +1,3 @@
-from .nodes import *
+from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-
-#  Map all your custom nodes classes with the names that will be displayed in the UI.
-NODE_CLASS_MAPPINGS = {
-    "(Down)Load My Model": MyModelLoader,
-    "Calculate Plus": CalculatePlus,
-    "Calculate Minus": CalculateMinus,
-    "Example Output Node": ExampleOutputNode,
-}
-
-
-__all__ = ['NODE_CLASS_MAPPINGS']
+__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']

@@ -1,17 +1,59 @@
-#  Edit the following fields to match your project
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "comfyui-customnodes-template"
-description = "Template repository for custom nodes from [ComfyUI-CustomNodes-Template](https://github.com/jhj0517/ComfyUI-CustomNodes-Template)."
+name = "ComfyUI-Webhook-Notification"
 version = "1.0.0"
-license = {file = "LICENSE"}
-dependencies = ["",]  # e.g.) ["numpy==1.18.1", ]
+description = "A ComfyUI custom node for sending webhook notifications with images and JSON data"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["comfyui", "webhook", "notification", "image-processing"]
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+maintainers = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+license = {text = "MIT"}
+requires = [
+    "requests>=2.31.0",
+    "Pillow>=10.0.0",
+]
 
 [project.urls]
-Repository = "https://github.com/jhj0517/ComfyUI-CustomNodes-Template"
-#  Used by Comfy Registry https://comfyregistry.org
+Homepage = "https://github.com/your-username/ComfyUI-Webhook-Notification"
+Repository = "https://github.com/your-username/ComfyUI-Webhook-Notification"
+"Bug Tracker" = "https://github.com/your-username/ComfyUI-Webhook-Notification/issues"
 
-[tool.comfy]
-PublisherId = "jhj0517"
-DisplayName = "ComfyUI-CustomNodes-Template"
-Icon = ""
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.md", "*.txt", "*.yml", "*.yaml"]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]

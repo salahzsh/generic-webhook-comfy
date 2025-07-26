@@ -1,152 +1,123 @@
-#  Package Modules
+# Package Modules
 import os
-from typing import Union, BinaryIO, Dict, List, Tuple, Optional
+import json
+from typing import Union, Dict, List, Optional, Tuple
 import time
 
-#  ComfyUI Modules
+# ComfyUI Modules
 import folder_paths
 from comfy.utils import ProgressBar
 
-#  Your Modules
-from .modules.calculator import CalculatorModel
+# Your Modules
+from .modules.webhook_sender import WebhookSender
 
 
-#  Basic practice to get paths from ComfyUI
-custom_nodes_script_dir = os.path.dirname(os.path.abspath(__file__))
-custom_nodes_model_dir = os.path.join(folder_paths.models_dir, "my-custom-nodes")
-custom_nodes_output_dir = os.path.join(folder_paths.get_output_directory(), "my-custom-nodes")
-
-
-#  These are example nodes that only contains basic functionalities with some comments.
-#  If you need detailed explanation, please refer to : https://docs.comfy.org/essentials/custom_node_walkthrough
-#  First Node:
-class MyModelLoader:
-    #  Define the input parameters of the node here.
+class WebhookNotificationNode:
+    """
+    ComfyUI node for sending webhook notifications with images and JSON data
+    """
+    
     @classmethod
     def INPUT_TYPES(s):
-        my_models = ["Model A", "Model B", "Model C"]
-
         return {
-            #  If the key is "required", the value must be filled.
             "required": {
-                #  `my_models` is the list, so it will be shown as a dropdown menu in the node. ( So that user can select one of them. )
-                #  You must provide the value in the tuple format. e.g. ("value",) or (3,) or ([1, 2],) etc.
-                "model": (my_models,),
-                "device": (['cuda', 'cpu', 'auto'],),
+                "webhook_url": ("STRING", {"default": "https://your-webhook-url.com/endpoint", "label": "Webhook URL", "placeholder": "Enter the webhook endpoint URL"}),
+                "images": ("IMAGE",),  # ComfyUI image input
             },
-            #  If the key is "optional", the value is optional.
             "optional": {
-                "compute_type": (['float32', 'float16'],),
+                "json_data": ("STRING", {"default": "{}", "multiline": True, "label": "JSON Data", "placeholder": "Enter JSON data to send with the webhook"}),
+                "custom_headers": ("STRING", {"default": "{}", "multiline": True, "label": "Custom Headers", "placeholder": "Enter custom HTTP headers as JSON"}),
+                "timeout": ("INT", {"default": 30, "min": 5, "max": 300, "label": "Timeout (seconds)"}),
+                "send_as_json": ("BOOLEAN", {"default": False, "label": "Send as JSON Only"}),
+                "enable_notification": ("BOOLEAN", {"default": True, "label": "Enable Webhook"}),
             }
         }
 
-    #  Define these constants inside the node.
-    #  `RETURN_TYPES` is important, as it limits the parameter types that can be passed to the next node, in `INPUT_TYPES()` above.
-    RETURN_TYPES = ("MY_MODEL",)
-    RETURN_NAMES = ("my_model",)
-    #  `FUNCTION` is the function name that will be called in the node.
-    FUNCTION = "load_model"
-    #  `CATEGORY` is the category name that will be used when user searches the node.
-    CATEGORY = "CustomNodesTemplate"
-
-    #  In the function, use same parameter names as you specified in `INPUT_TYPES()`
-    def load_model(self,
-                   model: str,
-                   device: str,
-                   compute_type: Optional[str] = None,
-                   ) -> Tuple[CalculatorModel]:
-        calculator_model = CalculatorModel()
-        calculator_model.load_model(model, device, compute_type)
-
-        #  You can use `comfy.utils.ProgressBar` to show the progress of the process.
-        #  First, initialize the total amount of the process.
-        total_steps = 5
-        comfy_pbar = ProgressBar(total_steps)
-        #  Then, update the progress.
-        for i in range(1, total_steps):
-            time.sleep(1)
-            comfy_pbar.update(i)  #  Alternatively, you can use `comfy_pbar.update_absolute(value)` to update the progress with absolute value.
-
-        #  Return the model as a tuple.
-        return (calculator_model, )
-
-
-#  Second Node
-class CalculatePlus:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "model": ("MY_MODEL", ),
-            },
-            #  Specify the parameters with type and default value.
-            "optional": {
-                "a": ("INT", {"default": 5}),
-                "b": ("INT", {"default": 10}),
-            }
-        }
-
-    RETURN_TYPES = ("INT",)
-    RETURN_NAMES = ("plus_value",)
-    FUNCTION = "plus"
-    CATEGORY = "CustomNodesTemplate"
-
-    def plus(self,
-             model: CalculatorModel,
-             a: Optional[int],
-             b: Optional[int],
-             ) -> Tuple[int]:
-        result = model.plus(a, b)
-        return (result, )
-
-
-
-#  Third Node
-class CalculateMinus:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "model": ("MY_MODEL", ),
-                "a": ("INT", ),
-            },
-            "optional": {
-                "b": ("INT", {"default": 10}),
-            }
-        }
-
-    RETURN_TYPES = ("INT",)
-    RETURN_NAMES = ("minus_value",)
-    FUNCTION = "minus"
-    CATEGORY = "CustomNodesTemplate"
-
-    def minus(self,
-             model: CalculatorModel,
-             a: Optional[int],
-             b: Optional[int],
-             ) -> Tuple[int]:
-        result = model.minus(a, b)
-        return (result, )
-
-
-
-#  Output Node
-class ExampleOutputNode:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "value": ("INT", ),
-            },
-        }
-
-    #  If the node is output node, set this to True.
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("status", "response")
+    FUNCTION = "send_webhook"
+    CATEGORY = "Webhook"
     OUTPUT_NODE = True
-    RETURN_TYPES = ("INT",)
-    RETURN_NAMES = ("int",)
-    FUNCTION = "result"
-    CATEGORY = "CustomNodesTemplate"
 
-    def result(self,
-               value: int,) -> Tuple[int]:
-        return (value, )
+    def send_webhook(self,
+                    webhook_url: str,
+                    images: List,
+                    json_data: str = "{}",
+                    custom_headers: str = "{}",
+                    timeout: int = 30,
+                    send_as_json: bool = False,
+                    enable_notification: bool = True) -> Tuple[str, str]:
+        
+        if not enable_notification:
+            return ("Skipped", "Webhook notification disabled")
+        
+        # Initialize progress bar
+        total_steps = 3
+        pbar = ProgressBar(total_steps)
+        pbar.update(0)
+        
+        try:
+            # Debug: Check what we received
+            print(f"Debug: Received images type: {type(images)}")
+            if images is not None:
+                print(f"Debug: Images length: {len(images)}")
+                if len(images) > 0:
+                    print(f"Debug: First image type: {type(images[0])}")
+                    if hasattr(images[0], 'shape'):
+                        print(f"Debug: First image shape: {images[0].shape}")
+            else:
+                print("Debug: Images is None")
+            
+            # Parse JSON data
+            try:
+                parsed_json = json.loads(json_data) if json_data.strip() else {}
+            except json.JSONDecodeError as e:
+                return ("Error", f"Invalid JSON data: {str(e)}")
+            
+            # Parse custom headers
+            try:
+                parsed_headers = json.loads(custom_headers) if custom_headers.strip() else {}
+            except json.JSONDecodeError as e:
+                return ("Error", f"Invalid headers JSON: {str(e)}")
+            
+            pbar.update(1)
+            
+            # Initialize webhook sender
+            webhook_sender = WebhookSender()
+            
+            pbar.update(2)
+            
+            # Send webhook
+            result = webhook_sender.send_webhook(
+                url=webhook_url,
+                images=images,
+                json_data=parsed_json,
+                headers=parsed_headers,
+                timeout=timeout,
+                send_as_json=send_as_json
+            )
+            
+            pbar.update(3)
+            
+            # Format response
+            if result['success']:
+                status = f"Success ({result['status_code']})"
+                response = f"Response: {result['response_text']}"
+            else:
+                status = "Failed"
+                response = f"Error: {result.get('error', 'Unknown error')}"
+            
+            return (status, response)
+            
+        except Exception as e:
+            return ("Error", f"Unexpected error: {str(e)}")
+
+
+# Node class mapping for ComfyUI
+NODE_CLASS_MAPPINGS = {
+    "WebhookNotification": WebhookNotificationNode
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "WebhookNotification": "Webhook Notification"
+}
