@@ -1,7 +1,7 @@
 import requests
 import json
 import base64
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 from PIL import Image
 import io
 import numpy as np
@@ -50,17 +50,17 @@ class WebhookSender:
     
     def send_webhook(self, 
                     url: str, 
-                    images: List, 
+                    image: Any, 
                     json_data: Optional[Dict] = {},
                     headers: Optional[Dict] = None,
                     timeout: int = 30,
                     send_as_json: bool = False) -> Dict:
         """
-        Send a webhook POST request with images and JSON data
+        Send a webhook POST request with image and JSON data
         
         Args:
             url: The webhook URL to send the request to
-            images: List of ComfyUI image tensors to send
+            image: ComfyUI image tensor to send
             json_data: Optional JSON data to include in the request
             headers: Optional custom headers
             timeout: Request timeout in seconds
@@ -97,23 +97,21 @@ class WebhookSender:
                 files = []
                 data = {}
                 
-                # Convert and add images to files
-                if images is not None:
-                    print(f"[WebhookSender] Preparing to send {len(images)} images as multipart form data.")
-                    for i, image_tensor in enumerate(images):
-                        try:
-                            pil_image = convert_tensor_to_pil(image_tensor)
-                            if pil_image is not None:
-                                img_buffer = io.BytesIO()
-                                pil_image.save(img_buffer, format='PNG')
-                                img_buffer.seek(0)
-                                files.append(('images', (f'image_{i}.png', img_buffer, 'image/png')))
-                                print(f"  Added image_{i}.png to files (size: {img_buffer.getbuffer().nbytes} bytes)")
-                        except Exception as e:
-                            print(f"Warning: Failed to convert image {i}: {str(e)}")
-                            continue
+                # Convert and add image to files
+                if image is not None:
+                    print("[WebhookSender] Preparing to send image as multipart form data.")
+                    try:
+                        pil_image = convert_tensor_to_pil(image)
+                        if pil_image is not None:
+                            img_buffer = io.BytesIO()
+                            pil_image.save(img_buffer, format='PNG')
+                            img_buffer.seek(0)
+                            files.append(('image', ('image.png', img_buffer, 'image/png')))
+                            print(f"  Added image.png to files (size: {img_buffer.getbuffer().nbytes} bytes)")
+                    except Exception as e:
+                        print(f"Warning: Failed to convert image: {str(e)}")
                 else:
-                    print("[WebhookSender] No images to send.")
+                    print("[WebhookSender] No image to send.")
                 
                 if json_data:
                     data['payload'] = json.dumps(json_data)

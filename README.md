@@ -11,6 +11,7 @@ A custom ComfyUI node that allows you to send webhook notifications with images 
 - Configurable timeout settings
 - Progress bar for request status
 - Error handling and response feedback
+- **NEW: Generic webhook node that accepts any input type**
 
 ## Installation
 
@@ -23,7 +24,53 @@ A custom ComfyUI node that allows you to send webhook notifications with images 
 
 ## Usage
 
-### Basic Usage
+### Generic Webhook Node (Recommended for any input)
+
+The **Generic Webhook** node is the most flexible option that can accept any input type and automatically convert it to a JSON-serializable format.
+
+#### Basic Usage
+
+1. Add the "Generic Webhook" node to your workflow
+2. Connect any output from other nodes to the "any_input" input
+3. Set your webhook URL in the "webhook_url" field
+4. Optionally add additional JSON data in the "json_data" field
+5. Run your workflow
+
+#### Node Parameters
+
+**Required Parameters:**
+- **webhook_url**: The URL where the webhook will be sent
+
+**Optional Parameters:**
+- **any_input**: Accepts any input type (images, text, numbers, objects, etc.)
+- **json_data**: Additional JSON string to include in the request (default: `{}`)
+- **custom_headers**: JSON string for custom HTTP headers (default: `{}`)
+- **timeout**: Request timeout in seconds (default: 30, range: 5-300)
+- **http_method**: HTTP method to use (POST, PUT, PATCH) (default: POST)
+- **enable_notification**: Toggle to enable/disable webhook sending (default: true)
+
+#### Outputs
+- **status**: Success/failure status of the webhook request
+- **response**: Response text or error message from the server
+
+#### Payload Format
+
+The generic webhook automatically creates a payload with:
+```json
+{
+  "input_data": "converted_input_data",
+  "input_type": "TypeName",
+  "timestamp": 1234567890.123,
+  "source": "ComfyUI Generic Webhook",
+  "your_additional_data": "value"
+}
+```
+
+### Image-Specific Webhook Node
+
+The original **Webhook Notification** node is specifically designed for images.
+
+#### Basic Usage
 
 1. Add the "Webhook Notification" node to your workflow
 2. Connect an image output to the "images" input
@@ -31,7 +78,7 @@ A custom ComfyUI node that allows you to send webhook notifications with images 
 4. Optionally add JSON data in the "json_data" field
 5. Run your workflow
 
-### Node Parameters
+#### Node Parameters
 
 #### Required Parameters
 - **webhook_url**: The URL where the webhook will be sent
@@ -72,19 +119,27 @@ A custom ComfyUI node that allows you to send webhook notifications with images 
 
 ## Request Formats
 
-### Multipart Form Data (Default)
+### Generic Webhook Node
+The generic webhook always sends JSON requests with:
+- Content-Type: `application/json`
+- Automatically converted input data
+- Additional JSON data merged into the payload
+
+### Image-Specific Node
+
+#### Multipart Form Data (Default)
 When `send_as_json` is disabled (default), the webhook sends a multipart form request with:
 - Images as files with names `image_0.png`, `image_1.png`, etc.
 - JSON data in the `json_data` field
 
-### JSON Only
+#### JSON Only
 When `send_as_json` is enabled, the webhook sends a pure JSON request with:
 - Content-Type: `application/json`
 - JSON data as the request body
 
 ## Error Handling
 
-The node provides detailed error messages for:
+The nodes provide detailed error messages for:
 - Invalid JSON data
 - Network connection issues
 - Server errors
